@@ -7,10 +7,12 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
 	csvfilename := flag.String("csv", "problems.csv", "the csv file in the form of ")
+	timelimit := flag.Int("limit", 10, "the time limit is in seconds")
 	flag.Parse()
 
 	file, err := os.Open(*csvfilename)
@@ -25,18 +27,28 @@ func main() {
 	total := len(lines)
 	problems := parselines(lines)
 	var correct int
+	timer := time.NewTimer((time.Duration(*timelimit)) * time.Second)
 
 	for i, p := range problems {
 		fmt.Printf("problem no: %d :%s=\n", i+1, p.q)
-		var answer string
-		fmt.Scanf("%s\n", &answer)
-		if answer == (strings.TrimSpace(p.a)) {
-			fmt.Println("correct answer :-)")
-			correct++
+		answerch := make(chan string)
+		go func() {
+			var answer string
+			fmt.Scanf("%s\n", &answer)
+			answerch <- answer
+		}()
+		select {
+		case <-timer.C:
+			fmt.Printf("you scored %d out of %d", correct, total)
+			return
+		case answer := <-answerch:
+			if answer == (strings.TrimSpace(p.a)) {
+				fmt.Println("correct answer :-)")
+				correct++
+			}
 		}
 
 	}
-	fmt.Printf("you scored %d out of %d", correct, total)
 
 }
 
